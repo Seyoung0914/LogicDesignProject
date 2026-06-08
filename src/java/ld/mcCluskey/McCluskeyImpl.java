@@ -1,3 +1,4 @@
+import java.util.ArrayList;
 import java.util.List;
 
 public class McCluskeyImpl implements McCluskey {
@@ -78,31 +79,47 @@ public class McCluskeyImpl implements McCluskey {
     }
 
     @Override
-    public void optimize() {
-        /*
-         * [중간 작업: don't care 제거 및 table 준비]
-         *
-         * 1. PI 중에서 don't care만 포함한 PI를 제거한다.
-         *
-         *    예:
-         *    PI가 {2, 6}을 포함하고,
-         *    2와 6이 모두 don't care라면 제거한다.
-         *
-         *    하지만 PI가 {1, 5}를 포함하고,
-         *    1은 minterm, 5는 don't care라면 제거하면 안 된다.
-         *
-         * 2. row, column 구조를 만든다.
-         *
-         *    row    = PI 기준
-         *    column = minterm 기준
-         *
-         * 3. 각 minterm을 어떤 PI가 커버하는지 저장한다.
-         *
-         *    예:
-         *    minterm 1 -> PI1, PI3
-         *    minterm 3 -> PI1
-         *    minterm 5 -> PI2, PI3
-         */
+    public ArrayList<PI> optimize(ArrayList<PI> currentPIs, ArrayList<Integer> dontcare) {
+        // [중간 작업: don't care 제거 및 table 준비]
+        //
+        // 1. PI 중에서 don't care만 포함한 PI를 제거한다.
+        //  자 일단 받아. PI리스트랑 dont care 리스트를 받아
+        //  그리고 비교해 만약에 PI리스트에 dont care가 포함되면 그 다음 PI를 봐 근데 또 포함돼? 그러면
+        //  끝이야. 이걸 한번에 비교할 수는 없나?
+        for (int i = currentPIs.size() - 1; i >= 0; i--) {
+            int dontcareCount = 0;
+            PI pi = currentPIs.get(i);
+            for (int j = 0; j < pi.minterm.size(); j++) {
+                for (int k = 0; k < dontcare.size(); k++) {
+                    if (pi.minterm.get(j).equals(dontcare.get(k))) {
+                        dontcareCount++;
+                        break;
+                    }
+                }
+            }
+            if (dontcareCount == pi.minterm.size()) {
+                currentPIs.remove(i);
+            }
+        }
+     //    예:
+     //    PI가 {2, 6}을 포함하고,
+     //    2와 6이 모두 don't care라면 제거한다.
+     //
+     //    하지만 PI가 {1, 5}를 포함하고,
+     //    1은 minterm, 5는 don't care라면 제거하면 안 된다.
+     //
+     // 2. row, column 구조를 만든다.
+     //
+     //    row    = PI 기준
+     //    column = minterm 기준
+     //
+     // 3. 각 minterm을 어떤 PI가 커버하는지 저장한다.
+     //
+     //    예:
+     //    minterm 1 -> PI1, PI3
+     //    minterm 3 -> PI1
+     //    minterm 5 -> PI2, PI3
+        return currentPIs;
     }
 
     @Override

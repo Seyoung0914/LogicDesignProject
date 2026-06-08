@@ -1,8 +1,6 @@
 import java.util.ArrayList;
 import java.util.List;
 
-import static java.lang.Integer.toBinaryString;
-
 public class McCluskeyImpl implements McCluskey {
 
     @Override

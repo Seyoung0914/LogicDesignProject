@@ -1,4 +1,7 @@
 import java.util.*;
+import java.util.ArrayList;
+import java.util.List;
+
 
 public class McCluskeyImpl implements McCluskey {
 
@@ -70,12 +73,9 @@ public class McCluskeyImpl implements McCluskey {
     }
 
     @Override
-    public void makePI() {
+    public ArrayList<PI> makePI(ArrayList<Integer> minterm, ArrayList<Integer> dontcare) {
         /*
-         * [첫번째 작업: PI 만들기]
-         *
-         * 1. minterm과 don't care를 모두 PI 후보로 만든다.
-         * 2. 각 PI를 1의 개수 기준으로 그룹핑한다.
+
          * 3. 인접한 그룹끼리 비교한다.
          *    예: 1의 개수가 1개인 그룹과 2개인 그룹을 비교한다.
          *
@@ -88,7 +88,91 @@ public class McCluskeyImpl implements McCluskey {
          *
          * 7. 더 이상 새롭게 묶이는 PI가 없으면 반복을 종료한다.
          */
+
+        // minterm과 don't care term 초기 배열에 합함
+        ArrayList<Integer> initialPI = new ArrayList<>();
+        ArrayList<PI> currentPI = new ArrayList<>();
+        ArrayList<PI> newPI = new ArrayList<>();
+        ArrayList<PI> primeImplicants = new ArrayList<>();
+        initialPI.addAll(minterm);
+        initialPI.addAll(dontcare);
+
+        // PI 생성자 생성 후 currentPI에 추가
+        for (int m : initialPI) {
+            String bit = String.format("%4s", Integer.toBinaryString(m)).replace(' ', '0');
+            PI pi = new PI(bit, List.of(m));
+            currentPI.add(pi);
+        }
+
+        while(true) {
+            List<List<PI>> oneGroup = grouping(currentPI);
+            newPI = new ArrayList<>();
+            boolean merged  = false;
+
+            for (int i = 0; i < oneGroup.size() - 1; i++) {
+                for (int j = 0; j < oneGroup.get(i).size(); j++) {
+                    for (int k = 0; k < oneGroup.get(i + 1).size(); k++) {
+                        if (canMerge(oneGroup.get(i).get(j), oneGroup.get(i + 1).get(k))) {
+                            PI a = oneGroup.get(i).get(j);
+                            PI b = oneGroup.get(i + 1).get(k);
+                            merged = true;
+
+                            // 다른 자리를 -로 교체
+                            StringBuilder sb = new StringBuilder();
+                            for (int idx = 0; idx < a.bit.length(); idx++) {
+                                if (a.bit.charAt(idx) == b.bit.charAt(idx)) sb.append(a.bit.charAt(idx));
+                                else sb.append('-');
+                            }
+
+                            // minterm 합치기
+                            List<Integer> mergedMinterm = new ArrayList<>(a.minterm);
+                            for (int m : b.minterm) {
+                                if (!mergedMinterm.contains(m)) mergedMinterm.add(m);
+                            }
+
+                            // 합쳤을 떄 중복 PI인지 검사
+                            boolean alreadyExists = false;
+                            for (PI existing : newPI) {
+                                if (existing.bit.equals(sb.toString())) {
+                                    alreadyExists = true;
+                                    break;
+                                }
+                            }
+                            a.used = true;
+                            b.used = true;
+
+                            if (!alreadyExists) {
+                                newPI.add(new PI(sb.toString(), mergedMinterm));
+                            }
+
+                        }
+                    }
+                }
+            }
+
+            for (PI pi : currentPI) {
+                if (!pi.used) primeImplicants.add(pi);
+            }
+
+            if (!merged) break;
+            currentPI = new ArrayList<>(newPI);
+        }
+
+        return primeImplicants;
     }
+
+    // PI 두 개가 병합 가능한지 여부
+    public boolean canMerge(PI a, PI b) {
+        int different = 0;
+        for (int i = 0; i < a.bit.length(); i++) {
+            if (a.bit.charAt(i) != b.bit.charAt(i)) {
+                different++;
+            }
+        }
+        return different == 1;
+
+    }
+
 
     @Override
     public List<List<PI>> grouping(List<PI> currentPIs) {
@@ -107,35 +191,66 @@ public class McCluskeyImpl implements McCluskey {
          * groups[1] = 1의 개수가 1개인 PI들
          * groups[2] = 1의 개수가 2개인 PI들
          */
-        return List.of();
+        List<List<PI>> groups = new ArrayList<>();
+        for (int i = 0; i <= currentPIs.get(0).bit.length(); i++) {
+            groups.add(new ArrayList<>());
+        }
+
+        for (PI pi : currentPIs) {
+            int oneCount = 0;
+            for (char c : pi.bit.toCharArray()) {
+                if (c == '1') {
+                    oneCount++;
+                }
+            }
+            groups.get(oneCount).add(pi);
+        }
+
+        return groups;
     }
 
     @Override
-    public void optimize() {
-        /*
-         * [중간 작업: don't care 제거 및 table 준비]
-         *
-         * 1. PI 중에서 don't care만 포함한 PI를 제거한다.
-         *
-         *    예:
-         *    PI가 {2, 6}을 포함하고,
-         *    2와 6이 모두 don't care라면 제거한다.
-         *
-         *    하지만 PI가 {1, 5}를 포함하고,
-         *    1은 minterm, 5는 don't care라면 제거하면 안 된다.
-         *
-         * 2. row, column 구조를 만든다.
-         *
-         *    row    = PI 기준
-         *    column = minterm 기준
-         *
-         * 3. 각 minterm을 어떤 PI가 커버하는지 저장한다.
-         *
-         *    예:
-         *    minterm 1 -> PI1, PI3
-         *    minterm 3 -> PI1
-         *    minterm 5 -> PI2, PI3
-         */
+    public ArrayList<PI> optimize(ArrayList<PI> currentPIs, ArrayList<Integer> dontcare) {
+        // [중간 작업: don't care 제거 및 table 준비]
+        //
+        // 1. PI 중에서 don't care만 포함한 PI를 제거한다.
+        //  자 일단 받아. PI리스트랑 dont care 리스트를 받아
+        //  그리고 비교해 만약에 PI리스트에 dont care가 포함되면 그 다음 PI를 봐 근데 또 포함돼? 그러면
+        //  끝이야. 이걸 한번에 비교할 수는 없나?
+        for (int i = currentPIs.size() - 1; i >= 0; i--) {
+            int dontcareCount = 0;
+            PI pi = currentPIs.get(i);
+            for (int j = 0; j < pi.minterm.size(); j++) {
+                for (int k = 0; k < dontcare.size(); k++) {
+                    if (pi.minterm.get(j).equals(dontcare.get(k))) {
+                        dontcareCount++;
+                        break;
+                    }
+                }
+            }
+            if (dontcareCount == pi.minterm.size()) {
+                currentPIs.remove(i);
+            }
+        }
+     //    예:
+     //    PI가 {2, 6}을 포함하고,
+     //    2와 6이 모두 don't care라면 제거한다.
+     //
+     //    하지만 PI가 {1, 5}를 포함하고,
+     //    1은 minterm, 5는 don't care라면 제거하면 안 된다.
+     //
+     // 2. row, column 구조를 만든다.
+     //
+     //    row    = PI 기준
+     //    column = minterm 기준
+     //
+     // 3. 각 minterm을 어떤 PI가 커버하는지 저장한다.
+     //
+     //    예:
+     //    minterm 1 -> PI1, PI3
+     //    minterm 3 -> PI1
+     //    minterm 5 -> PI2, PI3
+        return currentPIs;
     }
 
     @Override

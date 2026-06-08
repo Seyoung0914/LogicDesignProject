@@ -1,7 +1,26 @@
+import java.util.*;
 import java.util.ArrayList;
 import java.util.List;
 
+
 public class McCluskeyImpl implements McCluskey {
+
+    private final Scanner sc;
+
+    int bits;               // 비트 개수
+    List<Integer> minterms;   // 출력이 1인 항들
+    List<Integer> dontcares;  // don't care 항들
+    List<PI> primeImplicants; // 최종 PI 리스트
+    List<PI> answer;          // 최종 정답 PI 리스트
+
+    public McCluskeyImpl(Scanner sc) {
+        this.sc = sc;
+        this.minterms    = new ArrayList<>();
+        this.dontcares   = new ArrayList<>();
+        this.primeImplicants = new ArrayList<>();
+        this.answer      = new ArrayList<>();
+    }
+
 
     @Override
     public void solve() {
@@ -20,21 +39,37 @@ public class McCluskeyImpl implements McCluskey {
         print();
     }
 
-    @Override
+    @Override   
     public void input() {
-        /*
-         * [입력받기]
-         *
-         * 1. 비트 개수를 입력받는다.
-         *    예: 4비트이면 minterm을 0000 ~ 1111 형태로 표현한다.
-         *
-         * 2. minterm들을 입력받는다.
-         *    실제 출력 결과가 1이 되는 항들이다.
-         *
-         * 3. don't care 항들을 입력받는다.
-         *    결과가 0이어도 되고 1이어도 되는 항들이다.
-         *    PI를 만들 때는 사용하지만, 최종 answer에는 단독으로 남기면 안 된다.
-         */
+        int bCount;              
+        int mNum;             
+        int dcNum;            
+        ArrayList<Integer> mintermList  = new ArrayList<>();
+        ArrayList<Integer> dontCareList = new ArrayList<>();
+
+        // 비트 개수 입력
+        System.out.print("비트 개수: ");
+        bCount = sc.nextInt();
+
+        // minterm 개수 입력
+        System.out.print("minterm 개수: ");
+        mNum = sc.nextInt();
+
+        // minterm 값 하나씩 입력
+        for (int i = 0; i < mNum; i++) {
+            System.out.print((i + 1) + "번째 minterm: ");
+            mintermList.add(sc.nextInt());
+        }
+
+        // don't care 개수 입력
+        System.out.print("don't care 개수: ");
+        dcNum = sc.nextInt();
+
+        // don't care 값 하나씩 입력
+        for (int i = 0; i < dcNum; i++) {
+            System.out.print((i + 1) + "번째 don't care: ");
+            dontCareList.add(sc.nextInt());
+         }
     }
 
     @Override

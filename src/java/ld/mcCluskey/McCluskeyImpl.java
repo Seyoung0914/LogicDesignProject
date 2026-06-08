@@ -32,11 +32,11 @@ public class McCluskeyImpl implements McCluskey {
          *
          * Git conflict를 줄이기 위해 solve() 내부는 최대한 수정하지 않는다.
          */
-        input();
-        makePI();
-        optimize();
-        calculate();
-        print();
+//        input();
+//        makePI();
+//        optimize();
+//        calculate();
+//        print();
     }
 
     @Override   
@@ -259,7 +259,10 @@ public class McCluskeyImpl implements McCluskey {
          * [두번째 작업: Answer 구하기]
          *
          * 1. Answer 리스트를 비워둔다.
-         *
+         *  findEPI();
+         *  row();
+         *  column();
+         *  findPI();
          * 2. row에는 PI들을 저장한다.
          *    의미: 각 PI가 어떤 minterm들을 커버하는지 저장한다.
          *

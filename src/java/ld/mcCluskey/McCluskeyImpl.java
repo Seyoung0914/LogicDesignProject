@@ -287,7 +287,26 @@ public class McCluskeyImpl implements McCluskey {
     void removeRows() {
 
     }
-    void removeColumns() {
+    List<List<PI>> removeColumns() {
+        List<List<PI>> columns = new ArrayList<>();
+
+        for (int m : minterms) {
+            List<PI> cover = new ArrayList<>();
+            for (PI pi : primeImplicants) {
+                if (pi.minterm.contains(m)) cover.add(pi);
+            }
+            columns.add(cover);
+        }
+
+        for (int i = columns.size() - 1; i >= 0; i--) {
+            for (int j = 0; j < columns.size(); j++) {
+                if (i == j) continue;
+                if (columns.get(i).containsAll(columns.get(j))) {
+                    columns.remove(i);
+                    break;
+                }
+            }
+        }
 
     }
     void findPI() {

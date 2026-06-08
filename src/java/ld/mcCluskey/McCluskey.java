@@ -9,5 +9,5 @@ public interface McCluskey {
         boolean isDontcare(int minterm); // 해당 번호가 don't care인지 확인하는 함수 (4-9)
         String parse(PI pi);             // 최종 PI를 문자식(ex: x1x2')으로 변환하는 함수 (4-10)
         void print();                    // 변환된 식들을 +로 연결하여 출력하는 함수 (4-11)
-
+        void solve();
 }

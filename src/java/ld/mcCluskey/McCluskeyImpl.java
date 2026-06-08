@@ -286,6 +286,48 @@ public class McCluskeyImpl implements McCluskey {
     }
     void removeRows() {
 
+        Map<PI, List<Integer>> rows = new HashMap<>();
+
+
+//        A. 2중 For문돌린다.
+//        i. 바깥 For
+//        1. PI 하나를 정한다 -> A
+//        ii. 안쪽 For
+//        1. PI 하나를 정한다 -> B
+//        2. A == B 인 애는 제외해야 한다.
+//        3. 안쪽For문에서 정한 if(A.contains(B)) 연산해서 비교한다.
+//        4. If(A.contains(B)) true라면, B를 제거한다. 그렇지 않으면 다음 B값으로 넘어간다.
+//                A. 어떻게 지우노? -> NULL로 minterm을 바꾼다.
+
+        List<PI> rows = new ArrayList<>(primeImplicants);
+
+        for (int i = 0; i < rows.size(); i++) {
+            PI A = rows.get(i);
+
+            if (A == null) {
+                continue;
+            }
+
+            for (int j = 0; j < rows.size(); j++) {
+                PI B = rows.get(j);
+
+                if (i == j) {
+                    continue;
+                }
+
+                if (B == null) {
+                    continue;
+                }
+
+                if (A.minterm.containsAll(B.minterm)) {
+                    rows.set(j, null);
+                }
+            }
+        }
+
+        rows.removeIf(pi -> pi == null);
+
+        primeImplicants = rows;
     }
     List<List<PI>> removeColumns() {
         List<List<PI>> columns = new ArrayList<>();

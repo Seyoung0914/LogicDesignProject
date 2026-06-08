@@ -259,14 +259,14 @@ public class McCluskeyImpl implements McCluskey {
          * [두번째 작업: Answer 구하기]
          *
          * 1. Answer 리스트를 비워둔다.
-         *  findEPI();
-         *  row();
-         *  column();
-         *  findPI();
-         * 2. row에는 PI들을 저장한다.
+         *  void findEPI();
+         *  void removeRows에는();
+         *  void removeColumns에는();
+         *  void findPI();
+         * 2. removeRows에는 PI들을 저장한다.
          *    의미: 각 PI가 어떤 minterm들을 커버하는지 저장한다.
          *
-         * 3. column에는 minterm들을 저장한다.
+         * 3. removeColumns에는 minterm들을 저장한다.
          *    의미: 각 minterm을 어떤 PI들이 커버하는지 저장한다.
          *
          * 4. EPI를 찾는다.
@@ -280,6 +280,18 @@ public class McCluskeyImpl implements McCluskey {
          *
          * 7. 남은 minterm을 커버하는 PI를 최종 answer에 추가한다.
          */
+    }
+    void findEPI() {
+
+    }
+    void removeRows() {
+
+    }
+    void removeColumns() {
+
+    }
+    void findPI() {
+
     }
 
     @Override

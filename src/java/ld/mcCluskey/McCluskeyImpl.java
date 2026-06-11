@@ -165,7 +165,10 @@ public class McCluskeyImpl implements McCluskey {
 
         // 비트를 각 자리별로 비교하여 다른 부분이 1개이면 병합 가능, 이외의 경우 병합 불가능
         for (int i = 0; i < a.bit.length(); i++) {
-            if (a.bit.charAt(i) == '-' || b.bit.charAt(i) == '-') continue; // '-'는 고려 대상에서 제외
+            boolean isAdash = a.bit.charAt(i) == '-';
+            boolean isBdash = b.bit.charAt(i) == '-';
+            if (isAdash != isBdash) return false;   // 대시 위치 다르면 병합 불가
+            if (isAdash && isBdash) continue;       // 둘 다 대시면 그 자리는 통과
             if (a.bit.charAt(i) != b.bit.charAt(i)) {
                 different++;
             }

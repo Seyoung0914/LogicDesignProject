@@ -39,76 +39,64 @@ public class McCluskeyImpl implements McCluskey {
 //        print();
     }
 
-    @Override   
+    @Override
     public void input() {
-        int bCount;              
-        int mNum;             
-        int dcNum;            
+        int bitCount;
+        int mintermNum;
+        int dontcareNum;
         ArrayList<Integer> mintermList  = new ArrayList<>();
         ArrayList<Integer> dontCareList = new ArrayList<>();
 
         // 비트 개수 입력
         System.out.print("비트 개수: ");
-        bCount = sc.nextInt();
+        bitCount = sc.nextInt();
 
         // minterm 개수 입력
         System.out.print("minterm 개수: ");
-        mNum = sc.nextInt();
+        mintermNum = sc.nextInt();
 
         // minterm 값 하나씩 입력
-        for (int i = 0; i < mNum; i++) {
+        for (int i = 0; i < mintermNum; i++) {
             System.out.print((i + 1) + "번째 minterm: ");
             mintermList.add(sc.nextInt());
         }
 
         // don't care 개수 입력
         System.out.print("don't care 개수: ");
-        dcNum = sc.nextInt();
+        dontcareNum = sc.nextInt();
 
         // don't care 값 하나씩 입력
-        for (int i = 0; i < dcNum; i++) {
+        for (int i = 0; i < dontcareNum; i++) {
             System.out.print((i + 1) + "번째 don't care: ");
             dontCareList.add(sc.nextInt());
          }
     }
 
-    @Override
+    @Override // 입력받은 배열을 간소화하여 primeImplicants 배열 생성
     public ArrayList<PI> makePI(ArrayList<Integer> minterm, ArrayList<Integer> dontcare) {
-        /*
-
-         * 3. 인접한 그룹끼리 비교한다.
-         *    예: 1의 개수가 1개인 그룹과 2개인 그룹을 비교한다.
-         *
-         * 4. 1비트만 다른 PI끼리 묶는다.
-         *    예: 0001과 0011은 1비트만 다르므로 00-1로 묶을 수 있다.
-         *
-         * 5. 묶인 PI는 checked 처리한다.
-         *
-         * 6. 끝까지 묶이지 않은 PI는 prime implicant 리스트에 넣는다.
-         *
-         * 7. 더 이상 새롭게 묶이는 PI가 없으면 반복을 종료한다.
-         */
+        // minterm과 don't care term 초기 배열에 합함
+        ArrayList<Integer> initialTerms = new ArrayList<>(); // 초기 민텀과 돈케어 변수를 합친 하나의 배열
+        ArrayList<PI> currentPI = new ArrayList<>(); // 현재 단계 PI 배열
+        ArrayList<PI> newPI = new ArrayList<>(); // 현재 단계 PI 배열에서 간소화한 새로운 PI 배열
+        ArrayList<PI> primeImplicants = new ArrayList<>(); // 최종 PI 배열
 
         // minterm과 don't care term 초기 배열에 합함
-        ArrayList<Integer> initialPI = new ArrayList<>();
-        ArrayList<PI> currentPI = new ArrayList<>();
-        ArrayList<PI> newPI = new ArrayList<>();
-        ArrayList<PI> primeImplicants = new ArrayList<>();
-        initialPI.addAll(minterm);
-        initialPI.addAll(dontcare);
+        initialTerms.addAll(minterm);
+        initialTerms.addAll(dontcare);
 
         // PI 생성자 생성 후 currentPI에 추가
-        for (int m : initialPI) {
-            String bit = String.format("%4s", Integer.toBinaryString(m)).replace(' ', '0');
-            PI pi = new PI(bit, List.of(m));
+        for (int m : initialTerms) {
+            String bit = String.format("%" + bits + "s", Integer.toBinaryString(m)).replace(' ', '0');
+            PI pi = new PI(bit, new ArrayList<>(List.of(m)));
             currentPI.add(pi);
         }
 
+        // 더이상 병합되지 않을 때까지 그룹핑
         while(true) {
-            List<List<PI>> oneGroup = grouping(currentPI);
-            newPI = new ArrayList<>();
-            boolean merged  = false;
+            List<List<PI>> oneGroup = grouping(currentPI); // 1의 개수별 그룹
+            boolean merged  = false; // 병합 여부 불리안 변수
 
+            // 인접한 그룹의 각 요소를 모두 비교하여 병합 가능 여부 판단
             for (int i = 0; i < oneGroup.size() - 1; i++) {
                 for (int j = 0; j < oneGroup.get(i).size(); j++) {
                     for (int k = 0; k < oneGroup.get(i + 1).size(); k++) {
@@ -119,18 +107,18 @@ public class McCluskeyImpl implements McCluskey {
 
                             // 다른 자리를 -로 교체
                             StringBuilder sb = new StringBuilder();
-                            for (int idx = 0; idx < a.bit.length(); idx++) {
-                                if (a.bit.charAt(idx) == b.bit.charAt(idx)) sb.append(a.bit.charAt(idx));
+                            for (int index = 0; index < a.bit.length(); index++) {
+                                if (a.bit.charAt(index) == b.bit.charAt(index)) sb.append(a.bit.charAt(index));
                                 else sb.append('-');
                             }
 
-                            // minterm 합치기
+                            // minterm 합치기 (PI a, PI b 각각이 커버하는 민텀 배열을 합함)
                             List<Integer> mergedMinterm = new ArrayList<>(a.minterm);
                             for (int m : b.minterm) {
                                 if (!mergedMinterm.contains(m)) mergedMinterm.add(m);
                             }
 
-                            // 합쳤을 떄 중복 PI인지 검사
+                            // 합쳤을 떄 중복 PI인지 검사 (newPI를 순회하며 중복 여부 확인)
                             boolean alreadyExists = false;
                             for (PI existing : newPI) {
                                 if (existing.bit.equals(sb.toString())) {
@@ -138,6 +126,9 @@ public class McCluskeyImpl implements McCluskey {
                                     break;
                                 }
                             }
+
+                            /* 병합 된 PI들은 다음 병합에 이어서 사용하기 위해 used 변수로 체킹
+                               used = false 로 남아있는 PI는 primeImplicants에 추가 */
                             a.used = true;
                             b.used = true;
 
@@ -149,12 +140,15 @@ public class McCluskeyImpl implements McCluskey {
                     }
                 }
             }
-
+            // 병합에 사용되지 않은 PI들을 primeImplicants에 추가
             for (PI pi : currentPI) {
                 if (!pi.used) primeImplicants.add(pi);
             }
 
+            // 병합이 한 번도 안되었다면 무한루프 탈출
             if (!merged) break;
+
+            // 현재 PI 배열을 갱신
             currentPI = new ArrayList<>(newPI);
         }
 
@@ -164,6 +158,8 @@ public class McCluskeyImpl implements McCluskey {
     // PI 두 개가 병합 가능한지 여부
     public boolean canMerge(PI a, PI b) {
         int different = 0;
+
+        // 비트를 각 자리별로 비교하여 다른 부분이 1개이면 병합 가능, 이외의 경우 병합 불가능
         for (int i = 0; i < a.bit.length(); i++) {
             if (a.bit.charAt(i) != b.bit.charAt(i)) {
                 different++;
@@ -174,28 +170,14 @@ public class McCluskeyImpl implements McCluskey {
     }
 
 
-    @Override
+    @Override // 1의 개수로 그룹핑하여 반환
     public List<List<PI>> grouping(List<PI> currentPIs) {
-        /*
-         * [그룹핑]
-         *
-         * currentPIs에 들어 있는 PI들을 1의 개수 기준으로 나눈다.
-         *
-         * 예:
-         * 0001 -> 1의 개수 1개
-         * 0011 -> 1의 개수 2개
-         * 0111 -> 1의 개수 3개
-         *
-         * 결과 구조:
-         * groups[0] = 1의 개수가 0개인 PI들
-         * groups[1] = 1의 개수가 1개인 PI들
-         * groups[2] = 1의 개수가 2개인 PI들
-         */
         List<List<PI>> groups = new ArrayList<>();
-        for (int i = 0; i <= currentPIs.get(0).bit.length(); i++) {
+        for (int i = 0; i <= bits; i++) {
             groups.add(new ArrayList<>());
         }
 
+        // PI 클래스의 bit 변수를 순회하며 1의 개수 카운팅
         for (PI pi : currentPIs) {
             int oneCount = 0;
             for (char c : pi.bit.toCharArray()) {
@@ -209,14 +191,9 @@ public class McCluskeyImpl implements McCluskey {
         return groups;
     }
 
-    @Override
+    @Override // 돈케어로만 이루어진 PI 제거
     public ArrayList<PI> optimize(ArrayList<PI> currentPIs, ArrayList<Integer> dontcare) {
-        // [중간 작업: don't care 제거 및 table 준비]
-        //
-        // 1. PI 중에서 don't care만 포함한 PI를 제거한다.
-        //  자 일단 받아. PI리스트랑 dont care 리스트를 받아
-        //  그리고 비교해 만약에 PI리스트에 dont care가 포함되면 그 다음 PI를 봐 근데 또 포함돼? 그러면
-        //  끝이야. 이걸 한번에 비교할 수는 없나?
+        // 현재 PI 배열 변수를 순회하며 각 PI가 커버하는 민텀 배열과 돈케어 배열이 정확히 일치하면 제거
         for (int i = currentPIs.size() - 1; i >= 0; i--) {
             int dontcareCount = 0;
             PI pi = currentPIs.get(i);
@@ -232,24 +209,6 @@ public class McCluskeyImpl implements McCluskey {
                 currentPIs.remove(i);
             }
         }
-     //    예:
-     //    PI가 {2, 6}을 포함하고,
-     //    2와 6이 모두 don't care라면 제거한다.
-     //
-     //    하지만 PI가 {1, 5}를 포함하고,
-     //    1은 minterm, 5는 don't care라면 제거하면 안 된다.
-     //
-     // 2. row, column 구조를 만든다.
-     //
-     //    row    = PI 기준
-     //    column = minterm 기준
-     //
-     // 3. 각 minterm을 어떤 PI가 커버하는지 저장한다.
-     //
-     //    예:
-     //    minterm 1 -> PI1, PI3
-     //    minterm 3 -> PI1
-     //    minterm 5 -> PI2, PI3
         return currentPIs;
     }
 
@@ -328,9 +287,12 @@ public class McCluskeyImpl implements McCluskey {
             if(rows.get(i) == null) rows.remove(i);
         }
     }
+
+    // 각 민텀을 커버하는 PI 집합들 중에 부분집합이 존재할 경우, 더 많은 PI에 의해 커버되는 민텀을 제거
     List<List<PI>> removeColumns() {
         List<List<PI>> columns = new ArrayList<>();
 
+        // 각 민텀을 커버하는 PI 집합 배열 생성
         for (int m : minterms) {
             List<PI> cover = new ArrayList<>();
             for (PI pi : primeImplicants) {
@@ -339,6 +301,7 @@ public class McCluskeyImpl implements McCluskey {
             columns.add(cover);
         }
 
+        // PI 집합들 중 부분집합이 존재할 경우, 더 많은 PI에 의해 커버되는 민텀 제거
         for (int i = columns.size() - 1; i >= 0; i--) {
             for (int j = 0; j < columns.size(); j++) {
                 if (i == j) continue;
@@ -348,8 +311,9 @@ public class McCluskeyImpl implements McCluskey {
                 }
             }
         }
-
+        return columns;
     }
+
     void findPI() {
 
         // 1. EPI 찾기
@@ -474,6 +438,6 @@ public class McCluskeyImpl implements McCluskey {
     @Override
     public void print() {
 
-        System.out.println(parse()); // parsing한 문자열 출력
+        System.out.println(parse()); // parsing한 문자열 출ㅇ
     }
 }

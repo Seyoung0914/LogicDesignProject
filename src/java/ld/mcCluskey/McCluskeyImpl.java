@@ -20,6 +20,8 @@ public class McCluskeyImpl implements McCluskey {
         this.dontcares   = new ArrayList<>();
         this.primeImplicants = new ArrayList<>();
         this.answer      = new ArrayList<>();
+        this.rows = new ArrayList<>();
+        this.columns = new ArrayList<>();
     }
 
     @Override
@@ -216,6 +218,15 @@ public class McCluskeyImpl implements McCluskey {
     @Override
     // [두번째 작업: Answer 구하기]
     public void calculate() {
+        rows = new ArrayList<>(primeImplicants);
+        columns = new ArrayList<>();
+        for (int m : minterms) {
+            List<PI> cover = new ArrayList<>();
+            for (PI pi : primeImplicants) {
+                if (pi.minterm.contains(m)) cover.add(pi);
+            }
+            columns.add(cover);
+        }
         // 1. EPI를 찾는다.
         //    어떤 minterm을 커버하는 PI가 하나뿐이면 그 PI는 EPI이다.
         findEPI();

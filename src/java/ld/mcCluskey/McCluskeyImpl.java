@@ -32,11 +32,11 @@ public class McCluskeyImpl implements McCluskey {
          *
          * Git conflict를 줄이기 위해 solve() 내부는 최대한 수정하지 않는다.
          */
-//        input();
-//        makePI();
-//        optimize();
-//        calculate();
-//        print();
+        input();
+        makePI();
+        optimize();
+        calculate();
+        print();
     }
 
     @Override   
@@ -254,32 +254,17 @@ public class McCluskeyImpl implements McCluskey {
     }
 
     @Override
+    // [두번째 작업: Answer 구하기]
     public void calculate() {
-        /*
-         * [두번째 작업: Answer 구하기]
-         *
-         * 1. Answer 리스트를 비워둔다.
-         *  void findEPI();
-         *  void removeRows에는();
-         *  void removeColumns에는();
-         *  void findPI();
-         * 2. removeRows에는 PI들을 저장한다.
-         *    의미: 각 PI가 어떤 minterm들을 커버하는지 저장한다.
-         *
-         * 3. removeColumns에는 minterm들을 저장한다.
-         *    의미: 각 minterm을 어떤 PI들이 커버하는지 저장한다.
-         *
-         * 4. EPI를 찾는다.
-         *    어떤 minterm을 커버하는 PI가 하나뿐이면 그 PI는 EPI이다.
-         *
-         * 5. 세로 비교를 수행한다.
-         *    minterm column끼리 비교해서 불필요한 column을 제거한다.
-         *
-         * 6. 가로 비교를 수행한다.
-         *    PI row끼리 비교해서 불필요한 PI를 제거한다.
-         *
-         * 7. 남은 minterm을 커버하는 PI를 최종 answer에 추가한다.
-         */
+        // 1. EPI를 찾는다.
+        //    어떤 minterm을 커버하는 PI가 하나뿐이면 그 PI는 EPI이다.
+        findEPI();
+        // 2. 가로 비교를 수행한다.
+        //    PI row끼리 비교해서 불필요한 PI를 제거한다.
+        removeRows();
+        // 3. 세로 비교를 수행한다.
+        //    minterm column끼리 비교해서 불필요한 column을 제거한다.
+        removeColumns();
     }
     void findEPI() {
 

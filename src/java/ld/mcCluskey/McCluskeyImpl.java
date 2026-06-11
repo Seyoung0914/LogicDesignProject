@@ -73,23 +73,17 @@ public class McCluskeyImpl implements McCluskey {
     public void makePI() {
         // minterm과 don't care term 초기 배열에 합함
         ArrayList<Integer> initialTerms = new ArrayList<>(); // 초기 민텀과 돈케어 변수를 합친 하나의 배열
-        ArrayList<PI> currentPI = new ArrayList<>(); // 현재 단계 PI 배열
-        ArrayList<PI> newPI = new ArrayList<>(); // 현재 단계 PI 배열에서 간소화한 새로운 PI 배열
 
         // minterm과 don't care term 초기 배열에 합함
         initialTerms.addAll(minterms);
         initialTerms.addAll(dontcares);
 
-        // PI 생성자 생성 후 currentPI에 추가
-        for (int m : initialTerms) {
-            String bit = String.format("%" + bits + "s", Integer.toBinaryString(m)).replace(' ', '0');
-            PI pi = new PI(bit, new ArrayList<>(List.of(m)));
-            currentPI.add(pi);
-        }
+        List<PI> currentPI = initializePI(initialTerms); // 현재 단계 PI 배열 생성
 
         // 더이상 병합되지 않을 때까지 그룹핑
         while(true) {
             List<List<PI>> oneGroup = grouping(currentPI); // 1의 개수별 그룹
+            ArrayList<PI> newPI = new ArrayList<>(); // 현재 단계 PI 배열에서 간소화한 새로운 PI 배열
             boolean merged  = false; // 병합 여부 불리안 변수
 
             // 인접한 그룹의 각 요소를 모두 비교하여 병합 가능 여부 판단
@@ -101,41 +95,21 @@ public class McCluskeyImpl implements McCluskey {
                             PI b = oneGroup.get(i + 1).get(k);
                             merged = true;
 
-                            // 다른 자리를 -로 교체
-                            StringBuilder sb = new StringBuilder();
-                            for (int index = 0; index < a.bit.length(); index++) {
-                                if (a.bit.charAt(index) == b.bit.charAt(index)) sb.append(a.bit.charAt(index));
-                                else sb.append('-');
+                            PI mergedPI = merge(a, b); // a와 b 합한 새로운 PI 생성
+
+                            // 중복 여부 판단하여 중복일 경우 제외
+                            if (!isDuplicate(newPI, mergedPI)) {
+                                newPI.add(mergedPI);
                             }
 
-                            // minterm 합치기 (PI a, PI b 각각이 커버하는 민텀 배열을 합함)
-                            List<Integer> mergedMinterm = new ArrayList<>(a.minterm);
-                            for (int m : b.minterm) {
-                                if (!mergedMinterm.contains(m)) mergedMinterm.add(m);
-                            }
-
-                            // 합쳤을 떄 중복 PI인지 검사 (newPI를 순회하며 중복 여부 확인)
-                            boolean alreadyExists = false;
-                            for (PI existing : newPI) {
-                                if (existing.bit.equals(sb.toString())) {
-                                    alreadyExists = true;
-                                    break;
-                                }
-                            }
-
-                            /* 병합 된 PI들은 다음 병합에 이어서 사용하기 위해 used 변수로 체킹
-                               used = false 로 남아있는 PI는 primeImplicants에 추가 */
+                            // 병합에 사용되었음으로 표시하고 다음 병합 단계에서 사용
                             a.used = true;
                             b.used = true;
-
-                            if (!alreadyExists) {
-                                newPI.add(new PI(sb.toString(), mergedMinterm));
-                            }
-
                         }
                     }
                 }
             }
+
             // 병합에 사용되지 않은 PI들을 primeImplicants에 추가
             for (PI pi : currentPI) {
                 if (!pi.used) primeImplicants.add(pi);
@@ -149,8 +123,42 @@ public class McCluskeyImpl implements McCluskey {
         }
     }
 
+    // 초기 PI 리스트 생성
+    private List<PI> initializePI(List<Integer> terms) {
+        List<PI> result = new ArrayList<>();
+        for (int m : terms) {
+            String bit = String.format("%" + bits + "s", Integer.toBinaryString(m)).replace(' ', '0');
+            result.add(new PI(bit, new ArrayList<>(List.of(m))));
+        }
+        return result;
+    }
+
+    // 두 PI를 병합하여 새 PI 반환
+    private PI merge(PI a, PI b) {
+        StringBuilder sb = new StringBuilder();
+        for (int i = 0; i < a.bit.length(); i++) {
+            // a와 b의 각 자리의 데이터를 비교하여 같으면 그대로 추가하고, 다르면 병합시키고 '-' 표기를 이용해 병합되었음을 표기
+            sb.append(a.bit.charAt(i) == b.bit.charAt(i) ? a.bit.charAt(i) : '-');
+        }
+
+        List<Integer> mergedMinterm = new ArrayList<>(a.minterm);
+        for (int m : b.minterm) {
+            if (!mergedMinterm.contains(m)) mergedMinterm.add(m);
+        }
+
+        return new PI(sb.toString(), mergedMinterm);
+    }
+
+    // 비트 패턴 중복 여부 확인
+    private boolean isDuplicate(List<PI> newPI, PI mergedPI) {
+        for (PI existing : newPI) {
+            if (existing.bit.equals(mergedPI.bit)) return true;
+        }
+        return false;
+    }
+
     // PI 두 개가 병합 가능한지 여부
-    public boolean canMerge(PI a, PI b) {
+    private boolean canMerge(PI a, PI b) {
         int different = 0;
 
         // 비트를 각 자리별로 비교하여 다른 부분이 1개이면 병합 가능, 이외의 경우 병합 불가능

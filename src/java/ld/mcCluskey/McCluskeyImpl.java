@@ -225,20 +225,40 @@ public class McCluskeyImpl implements McCluskey {
         for (int m : minterms) {
             List<PI> cover = new ArrayList<>();
             for (PI pi : primeImplicants) {
-                System.out.println(pi.bit + " " + pi.minterm);
                 if (pi.minterm.contains(m)) cover.add(pi);
             }
             columns.add(cover);
         }
-        // 1. EPI를 찾는다.
-        //    어떤 minterm을 커버하는 PI가 하나뿐이면 그 PI는 EPI이다.
-        findEPI();
-        // 2. 가로 비교를 수행한다.
-        //    PI row끼리 비교해서 불필요한 PI를 제거한다.
-        removeRows();
-        // 3. 세로 비교를 수행한다.
-        //    minterm column끼리 비교해서 불필요한 column을 제거한다.
-        removeColumns();
+        // EPI / 가로비교 / 세로비교를 변화가 없을 때까지 반복
+        int prev;
+        do {
+            prev = rows.size() + columns.size();
+            findEPI();
+            removeRows();
+            removeColumns();
+        } while (rows.size() + columns.size() != prev);
+
+        // 남은 minterm을 가장 많이 덮는 row를 골라 채움
+        List<Integer> remaining = new ArrayList<>(minterms);
+        for (PI pi : answer) remaining.removeAll(pi.minterm);
+        while (!remaining.isEmpty()) {
+            PI best = null;
+            int bestCount = -1;
+            for (PI pi : rows) {
+                if (pi == null || answer.contains(pi)) continue;
+                int count = 0;
+                for (int m : pi.minterm) {
+                    if (remaining.contains(m)) count++;
+                    if (count > bestCount) {
+                        bestCount = count;
+                        best = pi;
+                    }
+                }
+            }
+            if (best == null || bestCount == 0) break;
+            answer.add(best);
+            remaining.removeAll(best.minterm);
+        }
     }
     void findEPI() {
         for (int i = columns.size() - 1; i >= 0; i--) {
@@ -303,20 +323,6 @@ public class McCluskeyImpl implements McCluskey {
         }
     }
 
-    void findPI() {
-        // 유효 PI 수거 (정답에 추가)
-        for (PI pi : primeImplicants) {
-            if (pi != null && !answer.contains(pi)) {
-                for (int m : pi.minterm) {
-                    // -1로 지워지지 않고 배열에 살아남은 minterm을 하나라도 덮는다면 정답에 추가
-                    if (minterms.contains(m)) {
-                        answer.add(pi);
-                        break; 
-                    }
-                }
-            }
-        }
-    }
 
     @Override
     public String parse() {

@@ -457,28 +457,34 @@ public class McCluskeyImpl implements McCluskey {
     }
 
     @Override
-    public String parse(PI pi) {
-        /*
-         * [PI를 문자식으로 변환]
-         *
-         * PI의 bit 표현은 0, 1, - 로 구성된다.
-         *
-         * 예:
-         * bits = "10-1"
-         *
-         * 변환 규칙:
-         * 1. '-'는 해당 변수를 무시한다.
-         * 2. '1'이면 x를 그대로 출력한다.
-         * 3. '0'이면 x에 '를 붙인다.
-         *
-         * 예:
-         * 10-1
-         * x1 x2' x4
-         *
-         * 결과:
-         * x1x2'x4
-         */
-        return "";
+    public String parse(List<PI> pilist) {
+        StringBuilder term = new StringBuilder(); // 최종 정답 스트링빌더
+        StringBuilder sb = new StringBuilder(); // 임시 스트링빌더
+
+        for (int i = 0; i < pilist.size(); i++) {
+            for (int j = 0; j < pilist.get(i).bit.length(); j++) {
+                sb.setLength(0); // 임시 스트링빌더 초기화
+                if (pilist.get(i).bit.charAt(j) == '1') {
+                    sb.append("x");
+                    sb.append((j+1));
+                    term.append(sb.toString());
+                }
+                if (pilist.get(i).bit.charAt(j) == '0') {
+                    sb.append("x");
+                    sb.append((j+1));
+                    sb.append("'");
+                    term.append(sb.toString());
+                }
+                if (pilist.get(i).bit.charAt(j) == '-') {
+                    // '-'는 무시한다.
+                }
+            }
+            if (i < pilist.size() - 1) {
+                term.append(" + "); // pi 사이 + 구분자 삽입
+            }
+        }
+
+        return term.toString(); //x1x2' + x3x4x5' 형식의 폼으로 변환한 문자열 반환
     }
 
     @Override

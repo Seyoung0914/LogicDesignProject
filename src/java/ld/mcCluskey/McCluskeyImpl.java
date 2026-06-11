@@ -41,15 +41,12 @@ public class McCluskeyImpl implements McCluskey {
 
     @Override
     public void input() {
-        int bitCount;
         int mintermNum;
         int dontcareNum;
-        ArrayList<Integer> mintermList  = new ArrayList<>();
-        ArrayList<Integer> dontCareList = new ArrayList<>();
 
         // 비트 개수 입력
         System.out.print("비트 개수: ");
-        bitCount = sc.nextInt();
+        bits = sc.nextInt();
 
         // minterm 개수 입력
         System.out.print("minterm 개수: ");
@@ -58,7 +55,7 @@ public class McCluskeyImpl implements McCluskey {
         // minterm 값 하나씩 입력
         for (int i = 0; i < mintermNum; i++) {
             System.out.print((i + 1) + "번째 minterm: ");
-            mintermList.add(sc.nextInt());
+            minterms.add(sc.nextInt());
         }
 
         // don't care 개수 입력
@@ -68,21 +65,20 @@ public class McCluskeyImpl implements McCluskey {
         // don't care 값 하나씩 입력
         for (int i = 0; i < dontcareNum; i++) {
             System.out.print((i + 1) + "번째 don't care: ");
-            dontCareList.add(sc.nextInt());
+            dontcares.add(sc.nextInt());
          }
     }
 
     @Override // 입력받은 배열을 간소화하여 primeImplicants 배열 생성
-    public ArrayList<PI> makePI(ArrayList<Integer> minterm, ArrayList<Integer> dontcare) {
+    public void makePI() {
         // minterm과 don't care term 초기 배열에 합함
         ArrayList<Integer> initialTerms = new ArrayList<>(); // 초기 민텀과 돈케어 변수를 합친 하나의 배열
         ArrayList<PI> currentPI = new ArrayList<>(); // 현재 단계 PI 배열
         ArrayList<PI> newPI = new ArrayList<>(); // 현재 단계 PI 배열에서 간소화한 새로운 PI 배열
-        ArrayList<PI> primeImplicants = new ArrayList<>(); // 최종 PI 배열
 
         // minterm과 don't care term 초기 배열에 합함
-        initialTerms.addAll(minterm);
-        initialTerms.addAll(dontcare);
+        initialTerms.addAll(minterms);
+        initialTerms.addAll(dontcares);
 
         // PI 생성자 생성 후 currentPI에 추가
         for (int m : initialTerms) {
@@ -151,8 +147,6 @@ public class McCluskeyImpl implements McCluskey {
             // 현재 PI 배열을 갱신
             currentPI = new ArrayList<>(newPI);
         }
-
-        return primeImplicants;
     }
 
     // PI 두 개가 병합 가능한지 여부
@@ -192,24 +186,23 @@ public class McCluskeyImpl implements McCluskey {
     }
 
     @Override // 돈케어로만 이루어진 PI 제거
-    public ArrayList<PI> optimize(ArrayList<PI> currentPIs, ArrayList<Integer> dontcare) {
+    public void optimize() {
         // 현재 PI 배열 변수를 순회하며 각 PI가 커버하는 민텀 배열과 돈케어 배열이 정확히 일치하면 제거
-        for (int i = currentPIs.size() - 1; i >= 0; i--) {
+        for (int i = primeImplicants.size() - 1; i >= 0; i--) {
             int dontcareCount = 0;
-            PI pi = currentPIs.get(i);
+            PI pi = primeImplicants.get(i);
             for (int j = 0; j < pi.minterm.size(); j++) {
-                for (int k = 0; k < dontcare.size(); k++) {
-                    if (pi.minterm.get(j).equals(dontcare.get(k))) {
+                for (int k = 0; k < dontcares.size(); k++) {
+                    if (pi.minterm.get(j).equals(dontcares.get(k))) {
                         dontcareCount++;
                         break;
                     }
                 }
             }
             if (dontcareCount == pi.minterm.size()) {
-                currentPIs.remove(i);
+                primeImplicants.remove(i);
             }
         }
-        return currentPIs;
     }
 
     @Override
@@ -248,10 +241,8 @@ void findEPI() {
         }
     }
 }
-    
-    }
+
     void removeRows() {
-        List<PI> rows = new ArrayList<>(primeImplicants);
 //        A. 2중 For문돌린다.
 //        i. 바깥 For
         for (int i = 0; i < rows.size(); i++) {
@@ -281,9 +272,7 @@ void findEPI() {
     }
 
     // 각 민텀을 커버하는 PI 집합들 중에 부분집합이 존재할 경우, 더 많은 PI에 의해 커버되는 민텀을 제거
-    List<List<PI>> removeColumns() {
-        List<List<PI>> columns = new ArrayList<>();
-
+    void removeColumns() {
         // 각 민텀을 커버하는 PI 집합 배열 생성
         for (int m : minterms) {
             List<PI> cover = new ArrayList<>();
@@ -303,7 +292,6 @@ void findEPI() {
                 }
             }
         }
-        return columns;
     }
 
     void findPI() {
@@ -319,19 +307,6 @@ void findEPI() {
                 }
             }
         }
-    }
-
-    @Override
-    public boolean isDontcare(int minterm) {
-        /*
-         * [don't care 확인]
-         *
-         * 특정 minterm 번호가 don't care 목록에 포함되어 있는지 확인한다.
-         *
-         * 포함되어 있으면 true
-         * 포함되어 있지 않으면 false
-         */
-        return false;
     }
 
     @Override

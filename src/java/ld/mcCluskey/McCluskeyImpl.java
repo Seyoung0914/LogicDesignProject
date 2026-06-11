@@ -356,7 +356,8 @@ public class McCluskeyImpl implements McCluskey {
                 term.append(" + "); // pi 사이 + 구분자 삽입
             }
         }
-        if (term.isEmpty()) return "1"; //
+        if (answer.isEmpty()) return "0";   // F=0: 덮을 게 없음
+        if (term.isEmpty()) return "1";     // F=1: 전부 don't care 비트
         return term.toString(); //x1x2' + x3x4x5' 형식의 폼으로 변환한 문자열 반환
     }
 

@@ -266,22 +266,29 @@ public class McCluskeyImpl implements McCluskey {
         //    minterm column끼리 비교해서 불필요한 column을 제거한다.
         removeColumns();
     }
-    void findEPI() {
+void findEPI() {
 
-        for (int m : minterms) {
-            int count = 0;
-            for (PI pi : primeImplicants) {
-                if (pi.minterm.contains(m)) {
-                    count++;
-                    targetPI = pi; 
-                }
+    for (int m : minterms) {
+        int piCount = 0;
+        PI targetPI = null;
+
+    
+        for (PI pi : primeImplicants) {
+            if (pi.minterm.contains(m)) {
+                piCount++;
+                targetPI = pi; 
             }
+        }
 
-            if (count == 1 && !answer.contains(targetPI)) {
-                answer.add(targetPI);
+        if (piCount == 1) {
+           
+            if (!answer.contains(targetPI)) {
+                answer.add(targetPI); 
             }
-
+            continue; 
+        }
     }
+}
     
     }
     void removeRows() {
@@ -336,69 +343,7 @@ public class McCluskeyImpl implements McCluskey {
 
     }
     void findPI() {
-
-        // 1. EPI 찾기
-        findEPI();
-
-        // [정리] EPI가 덮은 minterm은 더 이상 볼 필요 없으니 -1로 마킹하여 지움
-        for (PI epi : answer) {
-            for (int i = 0; i < minterms.size(); i++) {
-                if (epi.minterm.contains(minterms.get(i))) {
-                    minterms.set(i, -1); 
-                }
-            }
-        }
-
-        // 2. 세로 비교 (Minterm 열 지배 규칙)
-        for (int i = 0; i < minterms.size(); i++) {
-            int mA = minterms.get(i);
-            if (mA == -1) continue; 
-
-            // Minterm A를 커버하는 PI 목록 수집
-            List<PI> piListA = new ArrayList<>();
-            for (PI pi : primeImplicants) {
-                if (pi != null && pi.minterm.contains(mA)) piListA.add(pi);
-            }
-
-            for (int j = 0; j < minterms.size(); j++) {
-                if (i == j) continue;
-                int mB = minterms.get(j);
-                if (mB == -1) continue;
-
-                // Minterm B를 커버하는 PI 목록 수집
-                List<PI> piListB = new ArrayList<>();
-                for (PI pi : primeImplicants) {
-                    if (pi != null && pi.minterm.contains(mB)) piListB.add(pi);
-                }
-
-                // [핵심] A가 B를 모두 포함(지배)하면? 
-                // -> B를 덮는 PI를 선택하면 A는 무조건 덮이므로, 더 큰(조건이 널널한) A 열을 지운다.
-                if (piListA.containsAll(piListB)) {
-                    minterms.set(i, -1);
-                    break;
-                }
-            }
-        }
-
-        // 3. 가로 비교 (PI 행 지배 규칙)
-        for (int i = 0; i < primeImplicants.size(); i++) {
-            PI piA = primeImplicants.get(i);
-            if (piA == null) continue;
-
-            for (int j = 0; j < primeImplicants.size(); j++) {
-                if (i == j) continue;
-                PI piB = primeImplicants.get(j);
-                if (piB == null) continue;
-
-                // [핵심] PI A가 PI B의 minterm을 모두 포함(대체)할 수 있다면?
-                // -> B는 A의 하위호환이므로, 쓸모없는 B 행을 지운다.
-                if (piA.minterm.containsAll(piB.minterm)) {
-                    primeImplicants.set(j, null);
-                }
-            }
-        }
-
-        // 4. 남은 유효 PI 수거 (정답에 추가)
+        // 유효 PI 수거 (정답에 추가)
         for (PI pi : primeImplicants) {
             if (pi != null && !answer.contains(pi)) {
                 for (int m : pi.minterm) {

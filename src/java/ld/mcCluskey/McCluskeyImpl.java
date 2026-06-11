@@ -457,29 +457,29 @@ public class McCluskeyImpl implements McCluskey {
     }
 
     @Override
-    public String parse(List<PI> pilist) {
+    public String parse() {
         StringBuilder term = new StringBuilder(); // 최종 정답 스트링빌더
         StringBuilder sb = new StringBuilder(); // 임시 스트링빌더
 
-        for (int i = 0; i < pilist.size(); i++) {
-            for (int j = 0; j < pilist.get(i).bit.length(); j++) {
+        for (int i = 0; i < answer.size(); i++) {
+            for (int j = 0; j < answer.get(i).bit.length(); j++) {
                 sb.setLength(0); // 임시 스트링빌더 초기화
-                if (pilist.get(i).bit.charAt(j) == '1') {
+                if (answer.get(i).bit.charAt(j) == '1') {
                     sb.append("x");
                     sb.append((j+1));
                     term.append(sb.toString());
                 }
-                if (pilist.get(i).bit.charAt(j) == '0') {
+                if (answer.get(i).bit.charAt(j) == '0') {
                     sb.append("x");
                     sb.append((j+1));
                     sb.append("'");
                     term.append(sb.toString());
                 }
-                if (pilist.get(i).bit.charAt(j) == '-') {
+                if (answer.get(i).bit.charAt(j) == '-') {
                     // '-'는 무시한다.
                 }
             }
-            if (i < pilist.size() - 1) {
+            if (i < answer.size() - 1) {
                 term.append(" + "); // pi 사이 + 구분자 삽입
             }
         }
@@ -489,15 +489,7 @@ public class McCluskeyImpl implements McCluskey {
 
     @Override
     public void print() {
-        /*
-         * [출력하기]
-         *
-         * 1. answer 리스트를 순회한다.
-         * 2. 각 PI를 parse()로 문자식으로 바꾼다.
-         * 3. 최종 논리식을 출력한다.
-         *
-         * 예:
-         * x1'x2 + x3x4'
-         */
+
+        System.out.println(parse()); // parsing한 문자열 출력
     }
 }

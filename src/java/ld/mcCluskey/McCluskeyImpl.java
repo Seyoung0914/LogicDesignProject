@@ -165,6 +165,7 @@ public class McCluskeyImpl implements McCluskey {
 
         // 비트를 각 자리별로 비교하여 다른 부분이 1개이면 병합 가능, 이외의 경우 병합 불가능
         for (int i = 0; i < a.bit.length(); i++) {
+            if (a.bit.charAt(i) == '-' || b.bit.charAt(i) == '-') continue; // '-'는 고려 대상에서 제외
             if (a.bit.charAt(i) != b.bit.charAt(i)) {
                 different++;
             }
@@ -185,9 +186,7 @@ public class McCluskeyImpl implements McCluskey {
         for (PI pi : currentPIs) {
             int oneCount = 0;
             for (char c : pi.bit.toCharArray()) {
-                if (c == '1') {
-                    oneCount++;
-                }
+                if (c == '1') oneCount++;
             }
             groups.get(oneCount).add(pi);
         }
@@ -223,6 +222,7 @@ public class McCluskeyImpl implements McCluskey {
         for (int m : minterms) {
             List<PI> cover = new ArrayList<>();
             for (PI pi : primeImplicants) {
+                System.out.println(pi.bit + " " + pi.minterm);
                 if (pi.minterm.contains(m)) cover.add(pi);
             }
             columns.add(cover);
@@ -237,29 +237,24 @@ public class McCluskeyImpl implements McCluskey {
         //    minterm column끼리 비교해서 불필요한 column을 제거한다.
         removeColumns();
     }
-void findEPI() {
+    void findEPI() {
+        for (int i = columns.size() - 1; i >= 0; i--) {
+            if (columns.get(i).size() == 1) {
+                PI epi = columns.get(i).get(0);
 
-    for (int m : minterms) {
-        int piCount = 0;
-        PI targetPI = null;
+                if (!answer.contains(epi)) answer.add(epi);
 
-    
-        for (PI pi : primeImplicants) {
-            if (pi.minterm.contains(m)) {
-                piCount++;
-                targetPI = pi; 
+                rows.remove(epi);
+
+                // epi가 커버하는 minterm 컬럼 전부 제거
+                for (int j = columns.size() - 1; j >= 0; j--) {
+                    if (columns.get(j).contains(epi)) columns.remove(j);
+                }
+
+                i = columns.size();
             }
-        }
-
-        if (piCount == 1) {
-           
-            if (!answer.contains(targetPI)) {
-                answer.add(targetPI); 
-            }
-            continue; 
         }
     }
-}
 
     void removeRows() {
 //        A. 2중 For문돌린다.
@@ -292,14 +287,6 @@ void findEPI() {
 
     // 각 민텀을 커버하는 PI 집합들 중에 부분집합이 존재할 경우, 더 많은 PI에 의해 커버되는 민텀을 제거
     void removeColumns() {
-        // 각 민텀을 커버하는 PI 집합 배열 생성
-        for (int m : minterms) {
-            List<PI> cover = new ArrayList<>();
-            for (PI pi : primeImplicants) {
-                if (pi.minterm.contains(m)) cover.add(pi);
-            }
-            columns.add(cover);
-        }
 
         // PI 집합들 중 부분집합이 존재할 경우, 더 많은 PI에 의해 커버되는 민텀 제거
         for (int i = columns.size() - 1; i >= 0; i--) {

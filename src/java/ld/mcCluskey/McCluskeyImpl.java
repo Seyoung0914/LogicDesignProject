@@ -6,12 +6,13 @@ import java.util.List;
 public class McCluskeyImpl implements McCluskey {
 
     private final Scanner sc;
-
-    int bits;               // 비트 개수
-    List<Integer> minterms;   // 출력이 1인 항들
-    List<Integer> dontcares;  // don't care 항들
-    List<PI> primeImplicants; // 최종 PI 리스트
-    List<PI> answer;          // 최종 정답 PI 리스트
+    private int bits;               // 비트 개수
+    private List<Integer> minterms;   // 출력이 1인 항들
+    private List<Integer> dontcares;  // don't care 항들
+    private List<PI> primeImplicants; // 최종 PI 리스트
+    private List<PI> answer;          // 최종 정답 PI 리스트
+    private List<PI> rows;
+    private List<List<PI>> columns;
 
     public McCluskeyImpl(Scanner sc) {
         this.sc = sc;
@@ -20,7 +21,6 @@ public class McCluskeyImpl implements McCluskey {
         this.primeImplicants = new ArrayList<>();
         this.answer      = new ArrayList<>();
     }
-
 
     @Override
     public void solve() {

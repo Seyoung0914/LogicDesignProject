@@ -228,26 +228,26 @@ public class McCluskeyImpl implements McCluskey {
     }
 void findEPI() {
 
-    for (int m : minterms) {
-        int piCount = 0;
-        PI targetPI = null;
+    for (int i = columns.size() - 1; i >= 0; i--) {
+        if (columns.get(i).size() == 1) {
+            PI epi = columns.get(i).get(0);
 
-    
-        for (PI pi : primeImplicants) {
-            if (pi.minterm.contains(m)) {
-                piCount++;
-                targetPI = pi; 
+            if (!answer.contains(epi)) {
+                answer.add(epi);
+            }
+
+            rows.remove(epi);
+            for (int j = columns.size() - 1; j >= 0; j--) {
+                if (columns.get(j).contains(epi)) columns.remove(j);
             }
         }
 
-        if (piCount == 1) {
-           
-            if (!answer.contains(targetPI)) {
-                answer.add(targetPI); 
-            }
-            continue; 
-        }
     }
+
+
+
+
+
 }
 
     void removeRows() {

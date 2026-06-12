@@ -1,3 +1,5 @@
+package mcCluskey;
+
 import java.util.Scanner;
 
 public class Main {

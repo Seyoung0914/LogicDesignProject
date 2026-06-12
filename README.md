@@ -1,50 +1,47 @@
-# QuineMcCluskey.java - 알고리즘 논리 구조
+# McCluskeyImpl.java - 알고리즘 논리 구조
+
+---
+
+## 파일 구성
+
+| 파일 | 역할 |
+|------|------|
+| `Main.java` | 진입점. Scanner 생성 후 `solve()` 호출 |
+| `McCluskey.java` | 인터페이스 (input/makePI/grouping/optimize/calculate/parse/print/solve) |
+| `McCluskeyImpl.java` | 알고리즘 구현체 |
+| `PI.java` | Prime Implicant 하나를 표현하는 자료구조 |
 
 ---
 
 ## 전체 함수 호출 흐름
 
 ```
-main()
+Main.main()
   │
-  ├─ [입력] bits, minterms, dontCares
-  │
-  └─ solve(bits, minterms, dontCares)
+  └─ McCluskeyImpl.solve()
        │
-       ├─ [PI 생성 루프]
-       │    ├─ toBinaryString(term, bits)       ← 각 항 binary 변환
-       │    ├─ imp.getOneCount()                ← 1의 개수로 그룹핑
-       │    ├─ imp1.combine(imp2)               ← 인접 그룹 쌍 결합
-       │    └─ imp.checked == false → primeImplicants 수집
+       ├─ input()        ← bits, minterms, dontcares 입력
        │
-       ├─ [Don't Care 제거]
-       │    └─ pi.minterms ∩ minterms == ∅ → piList에서 제외
+       ├─ makePI()       ← Prime Implicant 생성
+       │    ├─ initializePI(allTerms)      ← 각 항을 binary 문자열 PI로 변환
+       │    ├─ grouping(currentPI)          ← '1'의 개수로 그룹핑
+       │    ├─ canMerge(a, b)               ← 결합 가능 여부 판단
+       │    ├─ merge(a, b)                  ← 인접 그룹 쌍 결합
+       │    ├─ isDuplicate(newPI, merged)   ← 중복 PI 제외
+       │    └─ pi.used == false → primeImplicants 수집
        │
-       ├─ [Chart Reduction 루프] (changed == true이면 반복)
-       │    │
-       │    ├─ ① EPI 찾기
-       │    │    ├─ cols[] 순회 → coverCount == 1인 minterm 탐색
-       │    │    ├─ epiList.add(epi)
-       │    │    ├─ cols[i] = -1   (커버된 minterm 제거)
-       │    │    └─ rows[idx] = null (해당 PI 제거)
-       │    │
-       │    ├─ ② 세로비교 (Column Dominance)
-       │    │    ├─ getCoveringPIIndices(m1, rows) → piIndices1
-       │    │    ├─ getCoveringPIIndices(m2, rows) → piIndices2
-       │    │    └─ piIndices1.containsAll(piIndices2) → cols[i] = -1
-       │    │
-       │    └─ ③ 가로비교 (Row Dominance)
-       │         ├─ getActiveMintermsCovered(pi1, cols) → activeMinterms1
-       │         ├─ getActiveMintermsCovered(pi2, cols) → activeMinterms2
-       │         └─ activeMinterms1.containsAll(activeMinterms2) → rows[j] = null
+       ├─ optimize()     ← Don't Care로만 이루어진 PI 제거
        │
-       ├─ [Cyclic Core 처리]
-       │    └─ solveCyclicCore(remainingCols, remainingPIs)
-       │         └─ findBestCoverBacktrack(minterms, pis, index, current, bestCover)
-       │               └─ coversAll(current, minterms)  ← 종료 조건 확인
+       ├─ calculate()    ← 최종 답(answer) 도출
+       │    ├─ buildChart()         ← rows / columns 차트 구성
+       │    ├─ simplify()           ← (변화 없을 때까지 반복)
+       │    │     ├─ findEPI()        ← ① EPI 추출
+       │    │     ├─ removeRows()     ← ② 가로비교 (Row Dominance)
+       │    │     └─ removeColumns()  ← ③ 세로비교 (Column Dominance)
+       │    └─ coverRemaining()     ← 남은(cyclic) minterm을 greedy로 커버
        │
-       └─ [출력]
-            └─ parsePI(mask, bits)  ← mask → 변수 표현식 변환
+       └─ print()        ← parse()로 식 변환 후 출력
+            └─ parse(answer)  ← bit 패턴 → x1x2' 표현식 변환
 ```
 
 ---
@@ -52,120 +49,145 @@ main()
 ## 함수별 역할
 
 ### `main()`
-- `Scanner`로 `bits`, `mintermCount`, `minterms`, `dcCount`, `dontCares` 순으로 입력받음
-- `solve()` 호출
+- `Scanner`로 입력 스트림을 만들고 `McCluskeyImpl` 생성 → `solve()` 호출
 
 ---
 
-### `solve(bits, minterms, dontCares)`
-전체 알고리즘 진행 담당. 내부 동작:
+### `solve()`
+전체 알고리즘 실행 순서만 제어:
+`input()` → `makePI()` → `optimize()` → `calculate()` → `print()`
 
-**① PI 생성**
-- `minterms + dontCares` → `allTerms`로 합침
-- 각 항을 `toBinaryString(term, bits)`로 변환 후 `Implicant` 생성 → `currentLevel`
+---
+
+### `input()`
+과제 입력 포맷 순서대로 읽음 (Scanner는 공백·개행을 무시하므로 토큰 순서만 중요):
+
+1. 변수(비트) 개수
+2. minterm 개수
+3. don't care 개수
+4. minterm 목록
+5. don't care 목록
+
+---
+
+### `makePI()`
+Prime Implicant 생성:
+
+- `minterms + dontcares` → `initialTerms`로 합침
+- `initializePI()`로 각 항을 비트 문자열 PI로 변환 → `currentPI`
 - 루프:
-  - `imp.getOneCount()`로 그룹(`groups[0..bits]`) 분류
-  - 인접 그룹(`groups[i]` ↔ `groups[i+1]`) 에서 `imp1.combine(imp2)` 시도
-  - 성공 시 `nextLevel`에 추가, `checked = true`
-  - `currentLevel`에서 `checked == false`인 항 → `primeImplicants`에 추가
-  - 결합 없으면 루프 종료
-
-**② Don't Care 제거**
-- `primeImplicants` 중 `pi.minterms`가 실제 `minterms`를 하나도 포함하지 않는 PI 제거 → `piList` 구성
-
-**③ Chart Reduction (changed 루프)**
-- `cols = List<Integer>` (minterms 복사, 제거 시 `-1`)
-- `rows = List<Implicant>` (piList 복사, 제거 시 `null`)
-- 순서: EPI → 세로비교 → 가로비교 (변화 발생 시 처음으로 돌아감)
-
-**④ Cyclic Core**
-- `cols`에 `-1`이 아닌 항이 남아있으면 `solveCyclicCore()` 호출
-
-**⑤ 출력**
-- `finalAnswer = epiList + otherSelectedPIs`
-- 각 PI에 대해 `parsePI(mask, bits)` 호출해서 표현식 조합
+  - `grouping()`으로 `'1'`의 개수별 그룹(`groups[0..bits]`) 분류
+  - 인접 그룹(`groups[i]` ↔ `groups[i+1]`)에서 `canMerge()` 통과 쌍을 `merge()`
+  - `merge` 결과를 `isDuplicate()`로 확인 후 `newPI`에 추가
+  - 결합에 쓰인 두 PI는 `used = true` 표시
+  - `currentPI` 중 `used == false`인 항(= 더 못 합쳐지는 PI) → `primeImplicants`에 수집
+  - 이번 라운드에 병합이 한 번도 없으면 루프 종료
 
 ---
 
-### `Implicant.getOneCount()`
-- `mask`에서 `'1'` 문자 개수 세어 반환
-- 그룹 분류에 사용
+### `initializePI(terms)`
+- 각 정수를 `bits` 자리 이진 문자열로 변환(`String.format` zero-padding)하여 PI 생성
+- 예: `term=5, bits=4` → `"0101"`
 
 ---
 
-### `Implicant.combine(Implicant other)`
-- 두 항의 `mask`를 비교, 다른 비트 수(`diffCount`) 계산
-- `diffCount == 1`이면:
-  - 다른 위치(`diffIdx`)를 `'-'`로 교체한 새 `Implicant` 반환
-  - `this.checked = true`, `other.checked = true`
-- 그 외엔 `null` 반환
+### `grouping(currentPIs)`
+- 각 PI의 `bit`에서 `'1'` 문자 개수를 세어 `groups[oneCount]`에 분류
+- 인접 그룹끼리만 비교하면 되므로 비교량을 줄임
 
 ---
 
-### `toBinaryString(int val, int bits)`
-- `Integer.toBinaryString(val)` 결과를 `bits` 자리수로 zero-padding
-- 예: `val=5, bits=4` → `"0101"`
+### `canMerge(a, b)`
+- 두 PI의 `bit`를 자리별로 비교
+- `'-'`(don't care 비트) **위치가 서로 다르면 결합 불가** (`return false`)
+- 실제 비트가 정확히 **1자리만 다르면** 결합 가능 (`return different == 1`)
 
 ---
 
-### `getCoveringPIIndices(int minterm, List<Implicant> rows)`
-- `rows`를 순회하며 `pi.minterms.contains(minterm)` 인 PI의 **인덱스** Set 반환
-- **세로비교**에서 두 minterm의 커버 PI 집합 비교에 사용
+### `merge(a, b)`
+- 같은 자리는 그대로, 다른 한 자리는 `'-'`로 교체 → 새 `bit`
+- 두 PI의 `minterm`을 합집합으로 묶어 새 `PI` 반환
 
 ---
 
-### `getActiveMintermsCovered(Implicant pi, List<Integer> cols)`
-- `pi.minterms` 중 `cols`에 현재 살아있는(`!= -1`) minterm만 모아 반환
-- **가로비교**에서 두 PI의 커버 minterm 집합 비교에 사용
+### `isDuplicate(newPI, mergedPI)`
+- 같은 `bit` 패턴의 PI가 이미 `newPI`에 있으면 `true` → 중복 추가 방지
 
 ---
 
-### `getActualMintermsCovered(Implicant pi, List<Integer> actualMinterms)`
-- `pi.minterms` 중 실제 `minterms`(Don't Care 미포함)에 속하는 것만 반환
-- PI 목록 출력 시 사용
+### `optimize()`
+- `primeImplicants` 중 **커버하는 항이 전부 don't care인 PI 제거**
+- 실제 출력 1을 만드는 데 기여하지 않는 PI를 답 후보에서 뺌
 
 ---
 
-### `solveCyclicCore(List<Integer> minterms, List<Implicant> pis)`
-- `bestCover`를 초기값 `pis` 전체로 설정 (worst case)
-- `findBestCoverBacktrack()` 호출 후 최소 커버 반환
+### `calculate()`
+- `buildChart()` → `simplify()` → `coverRemaining()` 순으로 최종 답 도출 (흐름만 제어)
 
 ---
 
-### `findBestCoverBacktrack(minterms, pis, index, current, bestCover)`
-DFS 백트래킹으로 최소 PI 집합 탐색:
-
-```
-종료 조건:
-  1. coversAll(current, minterms) == true
-     → current.size() < bestCover.size() 이면 bestCover 갱신
-  2. current.size() >= bestCover.size() - 1
-     → 이미 최적 초과, 가지치기
-  3. index == pis.size()
-     → 더 선택할 PI 없음
-
-재귀:
-  pis[index] 포함 → findBestCoverBacktrack(..., index+1, ...)
-  pis[index] 제외 → findBestCoverBacktrack(..., index+1, ...)
-```
+### `buildChart()`
+- `rows` = `primeImplicants` 복사 (후보 PI = 행)
+- `columns` = 각 minterm을 덮는 PI 목록 (minterm = 열)
 
 ---
 
-### `coversAll(List<Implicant> current, List<Integer> minterms)`
-- `current`의 모든 PI가 가진 `minterms` 합집합이 목표 `minterms`를 포함하면 `true`
-- `findBestCoverBacktrack()`의 성공 조건 판단에 사용
+### `simplify()`
+- `prev = rows.size + columns.size` 저장
+- `findEPI()` → `removeRows()` → `removeColumns()` 1회 수행
+- 크기가 더 줄지 않으면(`prev`와 같으면) 종료하는 `do-while` 루프
+- → EPI/dominance를 변화가 없을 때까지 반복 적용
 
 ---
 
-### `parsePI(String mask, int bits)`
-- `mask`의 각 비트를 변수 이름(`A`, `B`, `C`, ...)으로 변환
+### `findEPI()`
+- `columns` 중 **크기가 1인 열**(= 단 하나의 PI만 덮는 minterm) 탐색
+- 해당 PI를 `answer`에 추가, `rows`에서 제거
+- 그 PI가 덮는 minterm 열을 모두 제거
+- 차트가 바뀌었으므로 처음부터 다시 검사
+
+---
+
+### `removeRows()` — 가로비교 (Row Dominance)
+- 행 `A`가 행 `B`의 `minterm`을 모두 포함(`A ⊇ B`)하면 `B`는 불필요 → 제거
+- 제거는 일단 `null`로 표시한 뒤, 마지막에 한꺼번에 걷어냄
+
+---
+
+### `removeColumns()` — 세로비교 (Column Dominance)
+- 열 `i`가 열 `j`를 덮는 PI를 모두 포함(`i ⊇ j`)하면 `i`는 불필요 → 제거
+- (`j`가 덮이면 `i`도 자동으로 덮이므로)
+
+---
+
+### `coverRemaining()`
+EPI/dominance로도 안 풀린 **cyclic core**를 greedy로 마무리:
+
+- `remaining` = `minterms` 중 `answer`가 아직 안 덮은 항
+- `remaining`이 빌 때까지 반복:
+  - `rows` 중 `remaining`을 **가장 많이 덮는 PI**를 선택
+  - 그 PI를 `answer`에 추가하고, 덮은 minterm을 `remaining`에서 제거
+  - 더 덮을 게 없으면 종료
+
+---
+
+### `parse()`
+`answer`의 각 PI `bit`를 변수 표현식으로 변환:
 
 ```
 '-' → 해당 비트 무시 (skip)
-'1' → 변수 그대로 (예: 'A')
-'0' → 변수에 ' 붙임 (예: 'A'')
-전부 '-' → "1" 반환
+'1' → 변수 그대로     (위치 j → x(j+1))
+'0' → 변수에 ' 붙임   (위치 j → x(j+1)')
+전부 '-' (식이 빔)   → "1" 반환
 ```
+
+- PI 사이는 `" + "`로 연결
+- 예: `"10-1"` → `x1 x2' x4` → `"x1x2'x4"`
+
+---
+
+### `print()`
+- `parse()` 결과 문자열을 출력 (최종 최소화 식만 출력)
 
 ---
 
@@ -173,14 +195,21 @@ DFS 백트래킹으로 최소 PI 집합 탐색:
 
 | 변수 | 타입 | 의미 |
 |------|------|------|
-| `currentLevel` | `List<Implicant>` | 현재 결합 단계의 항 목록 |
-| `primeImplicants` | `Set<Implicant>` | 최종 PI 후보 (checked==false인 항) |
-| `piList` | `List<Implicant>` | Don't Care 전용 PI 제거 후 실제 PI 목록 |
-| `cols` | `List<Integer>` | 활성 Minterm 목록 (`-1` = 제거됨) |
-| `rows` | `List<Implicant>` | 활성 PI 목록 (`null` = 제거됨) |
-| `epiList` | `List<Implicant>` | EPI 목록 (최종 답의 앞부분) |
-| `otherSelectedPIs` | `List<Implicant>` | Cyclic Core에서 선택된 PI들 |
-| `finalAnswer` | `List<Implicant>` | `epiList + otherSelectedPIs` |
+| `bits` | `int` | 변수(비트) 개수 |
+| `minterms` | `List<Integer>` | 출력이 1인 항 |
+| `dontcares` | `List<Integer>` | don't care 항 |
+| `primeImplicants` | `List<PI>` | 생성된 Prime Implicant (`used==false`인 항) |
+| `answer` | `List<PI>` | 최종 정답 PI (EPI + greedy 선택분) |
+| `rows` | `List<PI>` | 활성 PI 목록 (행), `null` = 제거됨 |
+| `columns` | `List<List<PI>>` | 각 minterm을 덮는 PI 목록 (열) |
+
+### `PI` 클래스
+
+| 필드 | 타입 | 의미 |
+|------|------|------|
+| `bit` | `String` | PI 비트 패턴 (예: `"10-1"`) |
+| `minterm` | `List<Integer>` | 이 PI가 덮는 minterm 번호들 |
+| `used` | `boolean` | 다른 PI와 결합됐는지 (`true`면 PI 후보에서 제외) |
 
 ---
 
@@ -189,61 +218,49 @@ DFS 백트래킹으로 최소 PI 집합 탐색:
 ### 1단계: 컴파일
 
 ```bash
-cd "/Users/cw/Documents/프로젝트/workspaces/google AI -antigravity/logic-design"
-javac QuineMcCluskey.java
+javac Main.java McCluskey.java McCluskeyImpl.java PI.java
 ```
+(또는 디렉터리에서 `javac *.java`)
 
 ### 2단계: 실행
 
 **직접 입력 방식**
 ```bash
-java QuineMcCluskey
+java Main
 ```
-`main()`이 `Scanner`로 다음 순서로 입력받음:
+입력 순서 (과제 포맷):
 ```
-비트 개수 입력 (e.g. 4): 4
-minterm 개수 입력: 9
-minterm들 입력 (공백으로 구분): 
-0 2 5 6 7 8 10 13 15
-don't care 개수 입력: 1
-don't care들 입력 (공백으로 구분): 
-14
-```
-
-**파일 redirect 방식** (test_input.txt 이미 준비됨)
-```bash
-java QuineMcCluskey < test_input.txt
-```
-
-### test_input.txt 형식
-```
-[비트 수]
-[minterm 개수]
+[변수 개수]
+[minterm 개수] [don't care 개수]
 [minterm 값들 공백 구분]
-[don't care 개수]
-[don't care 값들 공백 구분]  ← 개수가 0이면 이 줄 불필요
+[don't care 값들 공백 구분]   ← 개수가 0이면 이 줄 생략
 ```
 
-### 예상 출력 (test_input.txt 기준)
-```
-Found Prime Implicants (PI):
-PI 0: -0-0 covering actual minterms: [0, 2, 8, 10]
-PI 1: --10 covering actual minterms: [2, 6, 10]
-PI 2: -1-1 covering actual minterms: [5, 7, 13, 15]
-PI 3: -11- covering actual minterms: [6, 7, 15]
-
-Found EPI: -0-0 (covers minterm 0)
-Found EPI: -1-1 (covers minterm 5)
-Row Dominance: PI --10 dominates -11-. Removing PI -11-
-Found EPI: --10 (covers minterm 6)
-
---- Final Result ---
-Minimized Formula: B'D' + BD + CD'
-```
-
-### Java가 없는 경우 설치
+**파일 redirect 방식**
 ```bash
-# Homebrew (macOS)
+java Main < ex2.txt
+```
+
+### 예제 (Example2 기준)
+
+입력 (`ex2.txt`):
+```
+5
+8 4
+1 3 10 14 21 26 28 30
+5 12 17 29
+```
+
+출력:
+```
+x2x4x5' + x1'x2'x3'x5 + x1x3x4'x5 + x1x2x3x4'
+```
+
+> 프로그램은 중간 과정(PI 목록·EPI 로그 등)을 출력하지 않고 **최종 최소화 식 한 줄만** 출력한다.
+
+### Java가 없는 경우 (macOS)
+
+```bash
 brew install openjdk@17
 export PATH="/opt/homebrew/opt/openjdk@17/bin:$PATH"
 ```
